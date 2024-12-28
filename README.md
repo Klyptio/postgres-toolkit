@@ -1,6 +1,6 @@
 # @klypt/postgres-toolkit
 
-A type-safe PostgreSQL adapter with connection pooling and repository pattern support.
+A lightweight, type-safe PostgreSQL adapter with connection pooling and repository pattern support.
 
 ## Installation
 
@@ -8,49 +8,17 @@ A type-safe PostgreSQL adapter with connection pooling and repository pattern su
 npm install @klypt/postgres-toolkit
 ```
 
-## Connection Examples
+## Features
 
-### Local PostgreSQL
-```typescript
-const connection = new PostgresConnection();
-await connection.connect({
-  host: 'localhost',
-  port: 5432,
-  database: 'mydb',
-  username: 'postgres',
-  password: 'yourpassword'
-});
-```
-
-### Docker PostgreSQL
-```typescript
-const connection = new PostgresConnection();
-await connection.connect({
-  host: 'localhost', // or container name if using docker-compose
-  port: 5434, // mapped port
-  database: 'mydb',
-  username: 'postgres',
-  password: 'postgres'
-});
-```
-
-### Supabase
-```typescript
-const connection = new PostgresConnection();
-await connection.connect({
-  connectionString: process.env.SUPABASE_DATABASE_URL,
-  ssl: true // Required for Supabase
-});
-```
-
-### Neon (Serverless Postgres)
-```typescript
-const connection = new PostgresConnection();
-await connection.connect({
-  connectionString: process.env.NEON_DATABASE_URL,
-  ssl: true
-});
-```
+- ✅ Type-safe repository pattern implementation
+- ✅ Connection pooling with configurable settings
+- ✅ Support for multiple PostgreSQL hosting solutions (Local, Docker, Supabase, etc.)
+- ✅ SSL support for secure connections
+- ✅ Transaction support
+- ✅ Query filtering, sorting, and pagination
+- ✅ Error handling with custom error types
+- ✅ Connection string support
+- ✅ Next.js compatible
 
 ## Usage in Next.js
 
@@ -67,7 +35,7 @@ const dbConfig = {
   database: process.env.POSTGRES_DB,
   username: process.env.POSTGRES_USER,
   password: process.env.POSTGRES_PASSWORD,
-  ssl: process.env.NODE_ENV === 'production', // Enable SSL in production
+  ssl: process.env.NODE_ENV === 'production',
   // Optional configurations
   poolSize: 20,
   idleTimeoutMillis: 30000,
@@ -106,9 +74,7 @@ export class UserRepository extends PostgresRepository<User> {
   }
 
   async findByEmail(email: string) {
-    const [user] = await this.findMany({
-      where: { email }
-    });
+    const [user] = await this.findMany({ where: { email } });
     return user || null;
   }
 }
@@ -127,25 +93,18 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const { id } = req.query;
-
   try {
     switch (req.method) {
       case 'GET':
-        const user = await userRepository.findById(id);
-        if (!user) return res.status(404).json({ error: 'User not found' });
-        return res.json(user);
+        const users = await userRepository.findMany();
+        return res.json(users);
 
-      case 'PUT':
-        const updated = await userRepository.update(id, req.body);
-        return res.json(updated);
-
-      case 'DELETE':
-        await userRepository.delete(id);
-        return res.status(204).end();
+      case 'POST':
+        const newUser = await userRepository.create(req.body);
+        return res.status(201).json(newUser);
 
       default:
-        res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
+        res.setHeader('Allow', ['GET', 'POST']);
         return res.status(405).end(`Method ${req.method} Not Allowed`);
     }
   } catch (error) {
@@ -163,50 +122,6 @@ await userRepository.withTransaction(async (repo) => {
   await repo.update(user.id, { status: 'active' });
 });
 ```
-
-### 5. Complex Queries
-
-```typescript
-// Filtering
-const activeUsers = await userRepository.findMany({
-  where: { status: 'active' }
-});
-
-// Sorting
-const sortedUsers = await userRepository.findMany({
-  orderBy: { created_at: 'desc' }
-});
-
-// Pagination
-const pagedUsers = await userRepository.findMany({
-  limit: 10,
-  offset: 20
-});
-
-// Combined
-const result = await userRepository.findMany({
-  where: { status: 'active' },
-  orderBy: { created_at: 'desc' },
-  limit: 10,
-  offset: 20
-});
-```
-
-## Features
-
-- ✅ Type-safe repository pattern implementation
-- ✅ Connection pooling with configurable settings
-- ✅ Support for multiple PostgreSQL hosting solutions (Local, Docker, Supabase, etc.)
-- ✅ SSL support for secure connections
-- ✅ Transaction support
-- ✅ Complex query building (filtering, sorting, pagination)
-- ✅ Comprehensive error handling with custom error types
-- ✅ Connection string and individual parameter support
-- ✅ Automatic connection management
-- ✅ Environment variable support
-- ✅ Generic repository pattern for type safety
-- ✅ Custom query support
-- ✅ Next.js API routes and Server Components compatible
 
 ## Environment Setup
 
@@ -242,23 +157,28 @@ interface PostgresConfig {
 const connection = new PostgresConnection();
 await connection.connect(config: PostgresConfig);
 await connection.disconnect();
-await connection.execute(query: string, params?: any[]);
-await connection.transaction<T>(callback: (client) => Promise<T>);
+await connection.execute<T>(query: string, params?: any[]): Promise<T[]>;
 ```
 
 ### PostgresRepository<T>
 
 ```typescript
+interface QueryOptions<T> {
+  where?: Partial<T>;
+  orderBy?: { [K in keyof T]?: 'asc' | 'desc' };
+  limit?: number;
+  offset?: number;
+}
+
 const repository = new PostgresRepository<T>(connection, 'table_name');
 
 // Available methods
 repository.findById(id: string | number): Promise<T | null>;
-repository.findMany(options?: QueryOptions): Promise<T[]>;
+repository.findMany(options?: QueryOptions<T>): Promise<T[]>;
 repository.create(data: Omit<T, 'id'>): Promise<T>;
 repository.update(id: string | number, data: Partial<T>): Promise<T>;
 repository.delete(id: string | number): Promise<boolean>;
-repository.query<R>(query: string, params?: any[]): Promise<R>;
-repository.withTransaction<R>(callback: (repository: this) => Promise<R>): Promise<R>;
+repository.query<R>(query: string, params?: any[]): Promise<R[]>;
 ```
 
 ## Contributing
@@ -268,3 +188,7 @@ Pull requests are welcome. For major changes, please open an issue first.
 ## License
 
 MIT
+
+## Author
+
+Priyajit Mukherjee

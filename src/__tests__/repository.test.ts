@@ -125,4 +125,39 @@ describe('PostgresRepository', () => {
       expect(users[1].name).toBe('User 3');
     });
   });
+
+  describe("Transactions", () => {
+    it("should commit transaction successfully", async () => {
+      await repository.withTransaction(async (repo) => {
+        await repo.create({
+          name: "Transaction User",
+          email: "transaction@example.com",
+        });
+      });
+
+      const user = await repository.findMany({
+        where: { email: "transaction@example.com" },
+      });
+      expect(user).toHaveLength(1);
+    });
+
+    it("should rollback transaction on error", async () => {
+      try {
+        await repository.withTransaction(async (repo) => {
+          await repo.create({
+            name: "Rollback User",
+            email: "rollback@example.com",
+          });
+          throw new Error("Test rollback");
+        });
+      } catch (error) {
+        // Expected error
+      }
+
+      const user = await repository.findMany({
+        where: { email: "rollback@example.com" },
+      });
+      expect(user).toHaveLength(0);
+    });
+  });
 });

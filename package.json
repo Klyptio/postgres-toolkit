@@ -1,6 +1,6 @@
 {
   "name": "@klypt/postgres-toolkit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -14,7 +14,6 @@
     "test:docker": "docker-compose up -d && npm test && docker-compose down"
   },
   "dependencies": {
-    "@klypt/db-core": "^0.1.3",
     "pg": "^8.11.3",
     "pg-connection-string": "^2.6.2"
   },
@@ -29,6 +28,21 @@
     "typescript": "^5.3.3"
   },
   "publishConfig": {
-    "access": "restricted"
-  }
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Klyptio/postgres-toolkit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Klyptio/postgres-toolkit/issues"
+  },
+  "homepage": "https://github.com/Klyptio/postgres-toolkit/#readme",
+  "description": "A type-safe PostgreSQL adapter with connection pooling and repository pattern support.",
+  "keywords": [
+    "postgres",
+    "nextjs"
+  ],
+  "author": "Priyajit Mukherjee",
+  "license": "MIT"
 }
